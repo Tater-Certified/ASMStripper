@@ -1,0 +1,15 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.github.tatercertified.stripper_test.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "plugin": "com.github.tatercertified.stripper_test.TestMixinPlugin",
+  "mixins": [
+    "MathHelperMixin"
+  ],
+  "client": [
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

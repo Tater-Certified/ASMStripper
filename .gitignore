@@ -1,0 +1,6 @@
+/.gradle
+/.idea
+/build
+/strippertest/.gradle
+/strippertest/build
+/strippertest/run

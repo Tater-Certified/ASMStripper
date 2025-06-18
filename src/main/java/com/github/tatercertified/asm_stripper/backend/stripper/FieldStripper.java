@@ -3,52 +3,35 @@ package com.github.tatercertified.asm_stripper.backend.stripper;
 import com.github.tatercertified.asm_stripper.ASMStripper;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.ListIterator;
 
-
-/**
- * This class is so unbelievably cursed... just don't worry about it :)
- */
 public class FieldStripper {
-    public static final Logger STRIPPER_LOGGER = LoggerFactory.getLogger("FieldStripper");
-
-    public static void stripFieldsWithClassNode(String className, ClassNode node, String[][] fieldsToStrip) {
+    /**
+     * Removes a field from a class
+     * @param node Field to remove
+     * @param parent Parent class
+     */
+    public static void stripField(FieldNode node, ClassNode parent) {
         if (ASMStripper.VERBOSE) {
-            STRIPPER_LOGGER.info("Beginning Stripping Process");
-        }
-        List<String> fields = new ArrayList<>();
-
-        for (String[] field : fieldsToStrip) {
-            fields.add(MappingTranslator.remapFieldName(className, field[0], field[1]));
+            System.out.println("Beginning Stripping Field: " + node.name);
         }
 
-        node.fields.removeIf(field -> {
-            if (fields.contains(field.name)) {
-                if (ASMStripper.VERBOSE) {
-                    STRIPPER_LOGGER.info("Stripped field: {}", field.name);
-                }
-                return true;
-            }
-            return false;
-        });
-
-        String internalName = node.name.replace('.', '/');
-        stripStaticFieldInitializers(node, fields, internalName);
-        removeStaticFieldUsagesInClinit(node, fields, internalName);
+        String internalName = parent.name.replace('.', '/');
+        stripStaticFieldInitializers(parent, node.desc, internalName);
+        removeStaticFieldUsagesInClinit(parent, node.desc, internalName);
 
         if (ASMStripper.VERBOSE) {
-            STRIPPER_LOGGER.info("Finished Stripping Process");
+            System.out.println("Finished Stripping Field: " + node.name);
         }
     }
 
-    private static void stripStaticFieldInitializers(ClassNode classNode, List<String> strippedFieldNames, String internalClassName) {
+    private static void stripStaticFieldInitializers(ClassNode classNode, String fieldDesc, String internalClassName) {
         for (MethodNode method : classNode.methods) {
-            if (!method.name.equals("<clinit>")) continue;
+            if (!method.name.equals("<clinit>")) {
+                continue;
+            }
 
             InsnList instructions = method.instructions;
             List<AbstractInsnNode> toRemove = new ArrayList<>();
@@ -57,10 +40,10 @@ public class FieldStripper {
                 if (insn instanceof FieldInsnNode fieldInsn &&
                         fieldInsn.getOpcode() == Opcodes.PUTSTATIC &&
                         fieldInsn.owner.equals(internalClassName) &&
-                        strippedFieldNames.contains(fieldInsn.name)) {
+                        fieldDesc.equals(fieldInsn.desc)) {
 
                     if (ASMStripper.VERBOSE) {
-                        STRIPPER_LOGGER.info("Stripping static field initializer: {}", fieldInsn.name);
+                        System.out.println("Stripping static field initializer: " + fieldInsn.name);
                     }
 
                     AbstractInsnNode start = insn.getPrevious();
@@ -88,6 +71,7 @@ public class FieldStripper {
                         toRemove.add(cur);
                         cur = cur.getNext();
                     }
+                    break;
                 }
             }
 
@@ -103,19 +87,16 @@ public class FieldStripper {
         }
     }
 
-    private static void removeStaticFieldUsagesInClinit(ClassNode classNode, List<String> strippedFields, String internalName) {
+    private static void removeStaticFieldUsagesInClinit(ClassNode classNode, String fieldDesc, String internalName) {
         for (MethodNode method : classNode.methods) {
             if (!method.name.equals("<clinit>")) continue;
 
             InsnList insns = method.instructions;
-            ListIterator<AbstractInsnNode> it = insns.iterator();
 
-            while (it.hasNext()) {
-                AbstractInsnNode insn = it.next();
-
+            for (AbstractInsnNode insn : insns) {
                 if (insn instanceof FieldInsnNode fieldInsn &&
                         fieldInsn.owner.equals(internalName) &&
-                        strippedFields.contains(fieldInsn.name)) {
+                        fieldDesc.equals(fieldInsn.desc)) {
 
                     List<AbstractInsnNode> toRemove = new ArrayList<>();
 
@@ -144,14 +125,13 @@ public class FieldStripper {
                     }
 
                     if (ASMStripper.VERBOSE) {
-                        STRIPPER_LOGGER.info("Removing usage of static field '{}'", fieldInsn.name);
+                        System.out.println("Removing usage of static field: " + fieldInsn.name);
                     }
                     for (AbstractInsnNode toDel : toRemove) {
                         insns.remove(toDel);
                     }
 
-                    // Reset iterator since we mutated the list
-                    it = insns.iterator();
+                    break;
                 }
             }
         }

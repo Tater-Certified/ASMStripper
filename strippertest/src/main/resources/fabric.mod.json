@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "id": "stripper_test",
+  "version": "${version}",
+
+  "name": "ASM Stripper Test",
+  "description": "ASM Stripper Test Mod",
+  "authors": ["QPCrummer"],
+  "contact": {},
+
+  "license": "MIT",
+  "icon": "assets/stripper_test/icon.png",
+
+  "environment": "*",
+  "entrypoints": {
+    "main": ["com.github.tatercertified.stripper_test.StripperTest"]
+  },
+
+  "mixins": [
+    "stripper_test.mixins.json"
+  ],
+
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "minecraft": "${minecraft_version}"
+  }
+}
